@@ -1,0 +1,36 @@
+﻿@page "/UMLView"
+@using System.IO.Compression
+@using System.Text
+@using System.IO
+<img class="scroll" style="overflow : scroll" src="@ImagePath" />
+
+@code {
+
+    [Parameter]
+    public string UMLString { get { return umlstring; } set { umlstring = value; EncodeDataToUrl(value); } }
+
+    [Parameter]
+    public string? altServer{ get; set; } = null;
+
+    string umlstring;
+    string ImagePath;
+    string Server => altServer ?? "http://www.plantuml.com/plantuml";
+    void EncodeDataToUrl(string uml)
+    {
+        if (uml != "" && uml != null)
+        {
+            //string escapedUml = Uri.EscapeDataString($"@startuml\n{uml}\n@enduml");
+            string escapedUml = $"@startuml\nskinparam dpi 75\nscale 1000 width\nleft to right direction\nskinparam linetype polyline\n{uml}\n@enduml";
+            byte[] byteArray = Encoding.ASCII.GetBytes(escapedUml);
+            ImagePath = $"{Server}/png/" + PlantUml.Utils.PlantUmlTextEncoder.Encode(escapedUml);
+        }
+        else
+        {
+            ImagePath = "https://via.placeholder.com/150";
+        }
+
+
+
+
+    }
+}

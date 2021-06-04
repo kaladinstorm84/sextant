@@ -1,0 +1,33 @@
+﻿@inject IKubernetes client
+<h3>Cluster</h3>
+@{
+    // Load from the default kubeconfig on the machine.
+    // var config = KubernetesClientConfiguration.BuildConfigFromConfigFile();
+
+    // Load from a specific file:
+
+}
+<table class="table">
+    <thead>
+        <tr>
+            <td>Node</td>
+            <td>IP</td>
+            <td>OS</td>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (NodeMetrics Node in client.GetKubernetesNodesMetricsAsync().Result.Items)
+        {
+        <tr>
+            <td>@Node.Metadata.Name</td>
+            <td>@client.ReadNodeStatus(Node.Metadata.Name).Status.Addresses[0].Address</td>
+            <td>@client.ReadNodeStatus(Node.Metadata.Name).Status.NodeInfo.OperatingSystem</td>
+        </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    string currentNode = "";
+
+}

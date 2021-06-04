@@ -1,0 +1,193 @@
+﻿@page "/uml"
+@inject IKubernetes client
+<img uml="
+class foo
+"/>
+<h3 @onload="LoadData">UML</h3>
+<div class="col-md-12">
+
+<select @bind="currentNamespace" >
+    <option>All</option>
+
+    @foreach (var ns in client.ListNamespace().Items)
+    {
+        <option>@ns.Name()</option>
+    }
+</select>
+<button @onclick="LoadData">Generate</button>
+    <br />
+    <div class="row">
+        <textarea class="col-md-12" style="min-width : max-content; min-height : max-content" onchange="plantuml_runonce">@UMLString</textarea>
+    </div>
+</div>
+       <UmlViewer UMLString="@UMLString" altServer="http://localhost:8089"></UmlViewer>
+        @*<img id = "diagram" uml="@UMLString" class="col-md-6"/>*@
+
+
+
+
+
+@code {
+        string imagepath = "https://via.placeholder.com/150";
+        System.Text.StringBuilder builder = new System.Text.StringBuilder();
+        string UMLString;
+    public string currentNamespace { get { return ns; } set { ns = value; LoadData(); } }
+    string ns = "";
+    void LoadData()
+    {
+        UMLString = "";
+        builder.Clear();
+        builder.AppendLine("!include <kubernetes/k8s-sprites-unlabeled-25pct>");
+        if (currentNamespace == "All")
+        {
+            foreach (var ns in client.ListNamespace().Items)
+            {
+                MapNamespace(ns.Name());
+            }
+        }
+        else
+        {
+            MapNamespace(currentNamespace);
+        }
+        UMLString = builder.ToString();
+        StateHasChanged();
+    }
+
+    void MapNamespace(string namespaceName)
+    {
+        Dictionary<string, string> ownerRefs = new Dictionary<string, string>();
+        builder.AppendLine($"namespace \"<$ns>\t{namespaceName}\" as {namespaceName} {{");
+        foreach (var ds in client.ListNamespacedDeployment(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$deploy>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "Deployment"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => Deployment");
+            builder.AppendLine($"PrimaryImage => {ds.Spec.Template.Spec.Containers[0].Image}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"Deployment_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+        }
+
+        foreach (var ds in client.ListNamespacedDaemonSet(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$ds>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "DaemonSet"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => DaemonSet");
+            builder.AppendLine($"PrimaryImage => {ds.Spec.Template.Spec.Containers[0].Image}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"DaemonSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+        }
+
+        foreach (var ds in client.ListNamespacedStatefulSet(namespaceName).Items)
+        {
+            builder.AppendLine($"map  \"<$sts>\\n{ds.Name().Replace('-', '_')}\" as StatefulSet_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => StatefulSet");
+            builder.AppendLine($"PrimaryImage => {ds.Spec.Template.Spec.Containers[0].Image}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"StatefulSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+
+        }
+
+        foreach (var ds in client.ListNamespacedService(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$svc>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind??"Service"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => Service");
+            builder.AppendLine($"IP => {ds.Spec.ClusterIP}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+
+            }
+            catch { }
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.Metadata.OwnerReferences?.ToList())
+                {
+                    ownerRefs.Add($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+        }
+
+        foreach (var ds in client.ListNamespacedIngress(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$ing>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "Ingress"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => Ingress");
+            builder.AppendLine($"Type => {ds.Spec.IngressClassName}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"Ingress_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+
+        }
+        foreach (var ds in client.ListNamespacedReplicaSet(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$rs>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "ReplicaSet"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => ReplicaSet");
+            builder.AppendLine($"Replicas => {ds.Status.ReadyReplicas ?? 0}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    ownerRefs.Add($"ReplicaSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+            }
+            catch { }
+        }
+
+        foreach (var ds in client.ListNamespacedPod(namespaceName).Items)
+        {
+            builder.AppendLine($"map \"<$pod>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "Pod"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"Kind => Pod");
+            builder.AppendLine($"IsRunning => {ds.Status.ContainerStatuses[0].State.Running}");
+            builder.AppendLine($"}}");
+            try
+            {
+                foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
+                {
+                    if(ownerRef.Kind!="Node")
+                        ownerRefs.Add($"Pod_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                }
+
+            }
+            catch { }
+        }
+
+        builder.AppendLine("}");
+        foreach (var p in ownerRefs)
+        {
+            builder.AppendLine($"{p.Key}-->{p.Value}");
+        }
+
+    }
+
+
+}

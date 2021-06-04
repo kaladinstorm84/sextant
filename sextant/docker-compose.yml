@@ -1,0 +1,43 @@
+﻿version: '3'
+services:
+  sextant:
+    image: sextant:dev
+  #  environment:
+  #   - ReconciliationDB=${ReconciliationDB}
+  #   - DQMLogDB=${DQMLogDB}
+  #   - ReportPro_Context=${ReportPro_Context}
+  #   - KafkaServer=${KafkaServer}
+  #   - GroupId=${GroupId}
+  #   - UseKafka=${UseKafka}
+  #   - UseDQM=${UseDQM}
+  #   - Client=${Client}
+  #   - ClientType=${ClientType}
+  #   - Version=${Version}
+  #   - MigrationId=${MigrationId}
+  #   - ConsulAddress=${ConsulAddress}
+    ports:
+    - '5001:7654' 
+    build:
+      context: "."
+      dockerfile: Dockerfile
+      args:
+        FEED_ACCESSTOKEN: ufk5yrbalpdggn3pgoyqg6iqgez3sqotjfh24q2pkb456cct7wna
+  plantuml:
+    image:  plantuml/plantuml-server:tomcat
+  #  environment:
+  #   - ReconciliationDB=${ReconciliationDB}
+  #   - DQMLogDB=${DQMLogDB}
+  #   - ReportPro_Context=${ReportPro_Context}
+  #   - KafkaServer=${KafkaServer}
+  #   - GroupId=${GroupId}
+  #   - UseKafka=${UseKafka}
+  #   - UseDQM=${UseDQM}
+  #   - Client=${Client}
+  #   - ClientType=${ClientType}
+  #   - Version=${Version}
+  #   - MigrationId=${MigrationId}
+  #   - ConsulAddress=${ConsulAddress}
+    ports:
+    - '8089:8080'
+    build:
+      context: "."

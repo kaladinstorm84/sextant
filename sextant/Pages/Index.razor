@@ -1,0 +1,16 @@
+﻿@page "/"
+@inject IKubernetes client
+<Cluster></Cluster>
+@foreach (var ns in client.ListNamespace().Items)
+{
+    @if (ns.Name() != null)
+    {
+<div class="border border-dark">
+    <h2>@ns.Name()</h2>
+    @*<Pods Namespace="@ns.Name()"></Pods>
+    <Deployments Namespace="@ns.Name()"></Deployments>
+    <ReplicaSets Namespace="@ns.Name()"></ReplicaSets>*@
+</div>
+    }
+    <p>&nbsp;</p>
+}

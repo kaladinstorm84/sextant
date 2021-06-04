@@ -1,0 +1,51 @@
+﻿@inject IKubernetes client
+<h4>Replica Sets</h4>
+@{
+    LoadData();
+}
+
+@if (ReplicaSetList?.Items != null)
+{
+    <div class="border border-dark">
+
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <td>Name</td>
+                    <td>Available</td>
+                    <td>Ready</td>
+                    <td>Hostname</td>
+                    <td>Readiness</td>
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (var pod in ReplicaSetList?.Items?.ToList())
+                {
+                    <tr>
+                        <td>@pod.Name()</td>
+                        <td>@pod.Status.AvailableReplicas</td>
+                        <td>@pod.Status.ReadyReplicas</td>
+                        <td>@pod.Spec.Template.Spec.Hostname</td>
+                        <td>@pod.Spec.Template.Spec.ReadinessGates?.All(a => a.ConditionType == "Ready").ToString()</td>
+                    </tr>
+                    <ReplicaSets></ReplicaSets>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+@code {
+    V1ReplicaSetList ReplicaSetList;
+
+    [Parameter]
+    public string Namespace { get; set; }
+
+    void LoadData()
+    {
+        if (Namespace != null)
+        {
+            ReplicaSetList = client.ListNamespacedReplicaSet(Namespace);
+        }
+    }
+}
