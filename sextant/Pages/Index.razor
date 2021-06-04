@@ -1,6 +1,6 @@
 ﻿@page "/"
 @inject IKubernetes client
-<Cluster></Cluster>
+
 @foreach (var ns in client.ListNamespace().Items)
 {
     @if (ns.Name() != null)

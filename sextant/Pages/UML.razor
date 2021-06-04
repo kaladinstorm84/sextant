@@ -1,12 +1,9 @@
-﻿@page "/uml"
+﻿@page "/uml/{currentNamespace}"
 @inject IKubernetes client
-<img uml="
-class foo
-"/>
-<h3 @onload="LoadData">UML</h3>
+<h3 @onload="LoadData">@currentNamespace</h3>
 <div class="col-md-12">
 
-<select @bind="currentNamespace" >
+@*<select @bind="currentNamespace" >
     <option>All</option>
 
     @foreach (var ns in client.ListNamespace().Items)
@@ -14,8 +11,8 @@ class foo
         <option>@ns.Name()</option>
     }
 </select>
-<button @onclick="LoadData">Generate</button>
-    <br />
+<button @onclick="LoadData">Generate</button>*@
+
     <div class="row">
         <textarea class="col-md-12" style="min-width : max-content; min-height : max-content" onchange="plantuml_runonce">@UMLString</textarea>
     </div>
@@ -31,6 +28,7 @@ class foo
         string imagepath = "https://via.placeholder.com/150";
         System.Text.StringBuilder builder = new System.Text.StringBuilder();
         string UMLString;
+    [Parameter]
     public string currentNamespace { get { return ns; } set { ns = value; LoadData(); } }
     string ns = "";
     void LoadData()
