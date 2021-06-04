@@ -2,13 +2,10 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe
-      convert -f C:\Users\Matthew.Anderson\source\repos\sextant\sextant\docker-compose.yml
-      -o ./sextant/kube
-    kompose.version: 1.21.0 (992df58d8)
+    app: plant-uml
   creationTimestamp: null
   labels:
-    io.kompose.service: plantuml
+    app: plantuml
   name: plantuml
 spec:
   ports:
