@@ -7,12 +7,12 @@ metadata:
   labels:
     app: plantuml
   name: plantuml
+
 spec:
+  type: LoadBalancer
   ports:
   - name: "8089"
     port: 8089
     targetPort: 8080
   selector:
     io.kompose.service: plantuml
-status:
-  loadBalancer: {}

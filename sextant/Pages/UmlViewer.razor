@@ -14,15 +14,24 @@
 
     string umlstring;
     string ImagePath;
-    string Server => altServer ?? "http://www.plantuml.com/plantuml";
+    string PlantServer => altServer ?? "http://www.plantuml.com/plantuml";
     void EncodeDataToUrl(string uml)
     {
         if (uml != "" && uml != null)
         {
             //string escapedUml = Uri.EscapeDataString($"@startuml\n{uml}\n@enduml");
-            string escapedUml = $"@startuml\nskinparam dpi 75\nscale 1000 width\nleft to right direction\nskinparam linetype polyline\n{uml}\n@enduml";
+            string escapedUml = $"{uml}";
             byte[] byteArray = Encoding.ASCII.GetBytes(escapedUml);
-            ImagePath = $"{Server}/png/" + PlantUml.Utils.PlantUmlTextEncoder.Encode(escapedUml);
+
+            string ServerImagePath = $"{PlantServer}/png/" + PlantUml.Utils.PlantUmlTextEncoder.Encode(escapedUml);
+
+
+            var webClient = new System.Net.WebClient();
+            byte[] imageBytes = webClient.DownloadData(ServerImagePath);
+
+            string base64String = Convert.ToBase64String(imageBytes, 0, imageBytes.Length);
+
+            ImagePath = "data:image/png;base64," + base64String;
         }
         else
         {

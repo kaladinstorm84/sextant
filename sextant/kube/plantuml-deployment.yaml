@@ -23,6 +23,9 @@ spec:
     spec:
       containers:
       - image: plantuml/plantuml-server:tomcat
+        env:
+          - name: PLANTUML_LIMIT_SIZE
+            value: '8192'
         imagePullPolicy: ""
         name: plantuml
         ports:

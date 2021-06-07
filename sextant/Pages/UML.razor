@@ -1,4 +1,5 @@
 ﻿@page "/uml/{currentNamespace}"
+@using sextant.Data;
 @inject IKubernetes client
 <h3 @onload="LoadData">@currentNamespace</h3>
 <div class="col-md-12">
@@ -25,9 +26,9 @@
 
 
 @code {
-        string imagepath = "https://via.placeholder.com/150";
-        System.Text.StringBuilder builder = new System.Text.StringBuilder();
-        string UMLString;
+    string imagepath = "https://via.placeholder.com/150";
+    System.Text.StringBuilder builder = new System.Text.StringBuilder();
+    string UMLString;
     [Parameter]
     public string currentNamespace { get { return ns; } set { ns = value; LoadData(); } }
     string ns = "";
@@ -35,7 +36,11 @@
     {
         UMLString = "";
         builder.Clear();
-        builder.AppendLine("!include <kubernetes/k8s-sprites-unlabeled-25pct>");
+        builder.AppendLine("!include <kubernetes/k8s-sprites-labeled-25pct>");
+        builder.AppendLine("@startuml");
+        builder.AppendLine("skinparam component{ fontcolor mediumblue}");
+        builder.AppendLine("left to right direction");
+        builder.AppendLine("skinparam linetype polyline");
         if (currentNamespace == "All")
         {
             foreach (var ns in client.ListNamespace().Items)
@@ -47,13 +52,15 @@
         {
             MapNamespace(currentNamespace);
         }
+        builder.AppendLine("@enduml");
         UMLString = builder.ToString();
         StateHasChanged();
     }
 
     void MapNamespace(string namespaceName)
     {
-        Dictionary<string, string> ownerRefs = new Dictionary<string, string>();
+        List<(string, string)> ownerRefs = new List<(string, string)>();
+        List<Relation> ownerRels = new List<Relation>();
         builder.AppendLine($"namespace \"<$ns>\t{namespaceName}\" as {namespaceName} {{");
         foreach (var ds in client.ListNamespacedDeployment(namespaceName).Items)
         {
@@ -65,10 +72,19 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"Deployment_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add (
+                        new Relation()
+                        {
+                            RelationFrom = $"Deployment_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Deployment_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
+
             }
             catch { }
+
         }
 
         foreach (var ds in client.ListNamespacedDaemonSet(namespaceName).Items)
@@ -81,10 +97,37 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"DaemonSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"DaemonSet_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"DaemonSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
             }
             catch { }
+            try
+            {
+                foreach (var ingress in client.ListNamespacedIngress(namespaceName)?.Items)
+                {
+                    if (ingress.Spec.Rules[0].Http.Paths[0].Backend.ServiceName == ds.Name())
+                    {
+                        ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"DaemonSet{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"Ingress_{ingress.Metadata.Name.Replace('-', '_')}",
+                            Type = RelationType.DoubleLong
+                        });
+                        //ownerRefs.Add(($"DaemonSet_{ds.Name().Replace('-', '_')}", $"Ingress_{ingress.Name().Replace('-', '_')}"));
+                    }
+                }
+            }
+            catch
+            {
+            }
         }
 
         foreach (var ds in client.ListNamespacedStatefulSet(namespaceName).Items)
@@ -97,33 +140,139 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"StatefulSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"StatefulSet_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"StatefulSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
             }
             catch { }
+            try
+            {
+                foreach (var ingress in client.ListNamespacedIngress(namespaceName)?.Items)
+                {
+                    if (ingress.Spec.Rules[0].Http.Paths[0].Backend.ServiceName == ds.Name())
+                    {
+                        ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"StatefulSet_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"Ingress_{ingress.Metadata.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                        //ownerRefs.Add(($"StatefulSet_{ds.Name().Replace('-', '_')}", $"Ingress_{ingress.Name().Replace('-', '_')}"));
+                    }
+                }
+            }
+            catch
+            {
+            }
 
         }
 
-        foreach (var ds in client.ListNamespacedService(namespaceName).Items)
+        foreach (var ds in client.ListNamespacedService(namespaceName)?.Items)
         {
-            builder.AppendLine($"map \"<$svc>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind??"Service"}_{ds.Name().Replace('-', '_')} {{");
+            builder.AppendLine($"map \"<$svc>\\n{ds.Name().Replace('-', '_')}\" as {ds.Kind ?? "Service"}_{ds.Name().Replace('-', '_')} {{");
             builder.AppendLine($"Kind => Service");
             builder.AppendLine($"IP => {ds.Spec.ClusterIP}");
             builder.AppendLine($"}}");
+
+
+            if (!(ds.Spec == null || ds.Spec.Selector == null))
+            {
+
+                var labels = new List<string>();
+                foreach (var key in ds.Spec.Selector)
+                {
+                    labels.Add(key.Key + "=" + key.Value);
+                }
+
+                var labelStr = string.Join(",", labels.ToArray());
+                Console.WriteLine(labelStr);
+                var podList = client.ListNamespacedPod(namespaceName, labelSelector: labelStr);
+                foreach (var pod in podList.Items)
+                {
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Service_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"Pod_{pod.Metadata.Name.Replace('-', '_')}",
+                            Type = RelationType.DoubleLong
+                        });
+                    //ownerRefs.Add(($"Service_{ds.Metadata.Name.Replace('-', '_')}", $"Pod_{pod.Metadata.Name.Replace('-', '_')}"));
+                }
+            }
+            try
+            {
+                foreach (var ingress in client.ListNamespacedIngress(namespaceName)?.Items)
+                {
+                    if (ingress.Spec.Rules[0].Http.Paths[0].Backend.ServiceName == ds.Name())
+                    {
+                        ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Ingress_{ingress.Metadata.Name.Replace('-', '_')}",
+                            RelationTo = $"Service_{ds.Name().Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                        //ownerRefs.Add(($"Service_{ds.Name().Replace('-', '_')}", $"Ingress_{ingress.Name().Replace('-', '_')}"));
+                    }
+                }
+            }
+            catch
+            {
+            }
+            try
+            {
+                if (ds.GetController() != null)
+                {
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Service_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"Deployment_{ds.GetController().Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Service_{ds.Name().Replace('-', '_')}", $"Deployment_{ds.GetController()?.Name.Replace('-', '_')}"));
+                }
+            }
+            catch
+            {
+            }
             try
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Service_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
-
             }
-            catch { }
+            catch
+            {
+            }
+
             try
             {
                 foreach (V1OwnerReference ownerRef in ds.Metadata.OwnerReferences?.ToList())
                 {
-                    ownerRefs.Add($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Service_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Service_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
             }
             catch { }
@@ -139,7 +288,14 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"Ingress_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Ingress_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Ingress_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
             }
             catch { }
@@ -155,7 +311,14 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    ownerRefs.Add($"ReplicaSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            RelationTo = $"ReplicaSet_{ds.Name().Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"ReplicaSet_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
                 }
             }
             catch { }
@@ -171,8 +334,61 @@
             {
                 foreach (V1OwnerReference ownerRef in ds.OwnerReferences()?.ToList())
                 {
-                    if(ownerRef.Kind!="Node")
-                        ownerRefs.Add($"Pod_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}");
+                    if (ownerRef.Kind != "Node")
+                        ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}",
+                            RelationTo = $"Pod_{ds.Name().Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+                    //ownerRefs.Add(($"Pod_{ds.Name().Replace('-', '_')}", $"{ownerRef.Kind}_{ownerRef.Name.Replace('-', '_')}"));
+                }
+
+            }
+            catch { }
+
+            try
+            {
+                foreach (var init in ds.Spec.InitContainers?.ToList())
+                {
+                    builder.AppendLine($"map \"{init.Name.Replace('-', '_')}\" as InitContainer_{ds.Metadata.Name.Replace('-', '_')}_{init.Name.Replace('-', '_')} {{");
+                    builder.AppendLine($"Image=>{init.Image.Replace('-', '_')}");
+                    foreach (var env in init.Env)
+                    {
+                        builder.AppendLine($"{env.Name}=>{env.Value}");
+                    }
+                    builder.AppendLine("}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Pod_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"InitContainer_{ds.Metadata.Name.Replace('-', '_')}_{init.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+
+                }
+            }
+            catch { }
+            try
+            {
+                foreach (var init in ds.Spec.Containers.ToList())
+                {
+                    builder.AppendLine($"map \"{init.Name.Replace('-', '_')}\" as Container_{ds.Metadata.Name.Replace('-', '_')}_{init.Name.Replace('-', '_')}{{");
+                    builder.AppendLine($"Image=>{init.Image.Replace('-', '_')}");
+                    foreach (var env in init.Env)
+                    {
+                        builder.AppendLine($"{env.Name}=>{env.Value}");
+                    }
+                    builder.AppendLine("}");
+                    ownerRels.Add(
+                        new Relation()
+                        {
+                            RelationFrom = $"Pod_{ds.Name().Replace('-', '_')}",
+                            RelationTo = $"Container_{ds.Metadata.Name.Replace('-', '_')}_{init.Name.Replace('-', '_')}",
+                            Type = RelationType.SingleLong
+                        });
+
                 }
 
             }
@@ -180,12 +396,23 @@
         }
 
         builder.AppendLine("}");
-        foreach (var p in ownerRefs)
+        foreach (var p in ownerRels)
         {
-            builder.AppendLine($"{p.Key}-->{p.Value}");
+            builder.AppendLine($"{p.RelationFrom}{GetConnector(p.Type)}{p.RelationTo}");
         }
 
     }
 
+    string GetConnector(RelationType type)
+    {
+        switch(type)
+        {
+            case RelationType.Single: return "->";
+            case RelationType.SingleLong: return "-->";
+            case RelationType.Double: return "=>";
+            case RelationType.DoubleLong: return "==>";
+            default: return "<->";
+        }
+    }
 
 }
