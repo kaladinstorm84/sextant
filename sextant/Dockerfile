@@ -8,7 +8,7 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
 COPY ["./sextant/sextant.csproj", "sextant/"]
-RUN dotnet restore "sextant/sextant.csproj"
+RUN dotnet restore "./sextant/sextant.csproj"
 COPY . .
 WORKDIR "/src/sextant"
 RUN dotnet build "sextant.csproj" -c Release -o /app/build
