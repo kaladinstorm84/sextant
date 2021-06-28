@@ -13,12 +13,16 @@
     }
 </select>
 <button @onclick="LoadData">Generate</button>*@
+    @{ 
+        string alt = $"http://127.0.0.1:8089";
+        Console.WriteLine(alt);
+        }
 
     <div class="row">
         <textarea class="col-md-12" style="min-width : max-content; min-height : max-content" onchange="plantuml_runonce">@UMLString</textarea>
     </div>
 </div>
-       <UmlViewer UMLString="@UMLString" altServer="http://localhost:8089"></UmlViewer>
+       <UmlViewer UMLString="@UMLString" PlantServer="@alt"></UmlViewer>
         @*<img id = "diagram" uml="@UMLString" class="col-md-6"/>*@
 
 
@@ -36,9 +40,9 @@
     {
         UMLString = "";
         builder.Clear();
-        builder.AppendLine("!include <kubernetes/k8s-sprites-labeled-25pct>");
         builder.AppendLine("@startuml");
-        builder.AppendLine("skinparam component{ fontcolor mediumblue}");
+        builder.AppendLine("!include <kubernetes/k8s-sprites-labeled-25pct>");
+       // builder.AppendLine("skinparam component{ fontcolor mediumblue}");
         builder.AppendLine("left to right direction");
         builder.AppendLine("skinparam linetype polyline");
         if (currentNamespace == "All")

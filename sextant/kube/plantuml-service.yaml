@@ -7,7 +7,6 @@ metadata:
   labels:
     app: plantuml
   name: plantuml
-
 spec:
   type: LoadBalancer
   ports:

@@ -10,11 +10,10 @@
     public string UMLString { get { return umlstring; } set { umlstring = value; EncodeDataToUrl(value); } }
 
     [Parameter]
-    public string? altServer{ get; set; } = null;
+    public string PlantServer{ get; set; } = "http://localhost:8080";
 
     string umlstring;
     string ImagePath;
-    string PlantServer => altServer ?? "http://www.plantuml.com/plantuml";
     void EncodeDataToUrl(string uml)
     {
         if (uml != "" && uml != null)
@@ -25,6 +24,7 @@
 
             string ServerImagePath = $"{PlantServer}/png/" + PlantUml.Utils.PlantUmlTextEncoder.Encode(escapedUml);
 
+            Console.WriteLine(ServerImagePath);
 
             var webClient = new System.Net.WebClient();
             byte[] imageBytes = webClient.DownloadData(ServerImagePath);
@@ -32,6 +32,7 @@
             string base64String = Convert.ToBase64String(imageBytes, 0, imageBytes.Length);
 
             ImagePath = "data:image/png;base64," + base64String;
+
         }
         else
         {

@@ -35,6 +35,7 @@ namespace sextant
 
 
             services.AddRazorPages();
+            services.AddCors();
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
             services.AddSingleton<IKubernetes,Kubernetes>(a=> { return new Kubernetes(config); });
@@ -43,6 +44,8 @@ namespace sextant
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseCors();
+           
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
