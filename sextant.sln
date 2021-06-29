@@ -5,6 +5,11 @@ VisualStudioVersion = 16.0.31313.79
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "sextant", "sextant\sextant.csproj", "{6C90B172-D674-4125-A2EE-451F8726E3B2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "installers", "installers", "{3D4DD39C-7A6D-432F-8D6C-D6C49B722AC9}"
+	ProjectSection(SolutionItems) = preProject
+		sextant\install.bat = sextant\install.bat
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

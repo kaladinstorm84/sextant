@@ -1,0 +1,66 @@
+﻿@page "/kuml"
+@using sextant.Data;
+@inject IKubernetes client
+<h3>KUML</h3>
+<UmlViewer UMLString="@UML" PlantServer="http://127.0.0.1:8089" @onload="LoadUML"></UmlViewer>
+@code { 
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        LoadUML();
+    }
+    string UML;
+
+    void LoadUML()
+    {
+        System.Text.StringBuilder builder = new System.Text.StringBuilder();
+
+        builder.AppendLine("@startuml");
+        builder.AppendLine("!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist");
+
+
+        builder.AppendLine("!includeurl KubernetesPuml/kubernetes_Common.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/kubernetes_Context.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/kubernetes_Simplified.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesSvc.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesIng.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesApi.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesRs.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesPod.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesSts.puml");
+        builder.AppendLine("!includeurl KubernetesPuml/OSS/KubernetesSecret.puml");
+        builder.AppendLine("Cluster_Boundary(cluster, \"Kubernetes Cluster\"){");
+        builder.AppendLine("KubernetesApi(KubernetesApi, \"Kubernetes API\", \"\")");
+        foreach (var ns in client.ListNamespace().Items)
+        {
+            builder.AppendLine($"Namespace_Boundary(ns_{formatName(ns.Metadata.Name)}, \"{ns.Name()}\") {{");
+            foreach(var serv in client.ListNamespacedService(ns.Name()).Items)
+            {
+                builder.AppendLine($"KubernetesSvc(svc_{formatName(serv.Name())}, \"{formatName(serv.Name())}\",\"\")");
+
+            }
+            foreach (var serv in client.ListNamespacedIngress(ns.Name()).Items)
+            {
+                builder.AppendLine($"KubernetesIng(ing_{formatName(serv.Name())}, \"{formatName(serv.Name())}\",\"\")");
+
+            }
+            foreach (var serv in client.ListNamespacedPod(ns.Name()).Items)
+            {
+                builder.AppendLine($"KubernetesPod(pod_{formatName(serv.Name())}, \"{formatName(serv.Name())}\",\"\")");
+
+            }
+
+            builder.AppendLine("}");
+        }
+        builder.AppendLine("}");
+        builder.AppendLine("@enduml");
+
+        UML = builder.ToString();
+    }
+
+    string formatName(string name)
+    {
+        return name.Replace("-", "_");
+    }
+}

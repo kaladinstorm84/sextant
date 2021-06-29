@@ -402,7 +402,7 @@
         builder.AppendLine("}");
         foreach (var p in ownerRels)
         {
-            builder.AppendLine($"{p.RelationFrom}{GetConnector(p.Type)}{p.RelationTo}");
+            builder.AppendLine($"{p.RelationFrom} {GetConnector(p.Type)} {p.RelationTo}");
         }
 
     }

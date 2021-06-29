@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - image: docker.io/library/sextant:dev
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: sextant
         env:
         - name: PLANT_UML_SERVER
